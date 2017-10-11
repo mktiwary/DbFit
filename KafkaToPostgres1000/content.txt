@@ -1,0 +1,25 @@
+!*> Setup
+!path lib/*.jar
+!|dbfit.PostgresTest|
+!|ConnectUsingFile|connection.conf|
+*!
+
+!2 Test to push 1000 more messages to Kafka
+
+|com.objectmentor.fixtures.CommandLineFixture|
+|command |!- C:\kafka_2.11-0.10.2.0\bin\windows\kafka-console-producer.bat --broker-list localhost:9092 --topic test < C:\f_application-1000-JSON.json -! |
+
+!|Execute|Select pg_sleep(7)|
+
+!2 Steps to validate the count in Source File and Target table is same
+
+!|Query|Select (SELECT count(*) as CNT1 FROM f_application) - (1010) as Diffcount|
+|Diffcount?|
+|0|
+
+
+
+
+
+
+
