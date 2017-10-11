@@ -1,0 +1,38 @@
+!*> Setup
+!path lib\*.jar
+!|dbfit.PostgresTest|
+!|ConnectUsingFile|connection.conf|
+!define tablename {d_date}
+*!
+
+!2 Test to validate the table Structure of Table ${tablename}
+
+!|Query|${tablesql}|
+|ordinal_position|column_name|udt_name|character_maximum_length|is_nullable|
+|1|date_pk|int4|NULL|NO|
+|2|julian_date|int4|NULL|NO|
+|3|date_name|bpchar|11|YES|
+|4|date_type|bpchar|5|NO|
+|5|day_of_week_num|int2|NULL|YES|
+|6|day_of_week|bpchar|9|NO|
+|7|weekday|bpchar|7|NO|
+|8|day_of_month|int2|NULL|YES|
+|9|first_last_day|bpchar|1|YES|
+|10|month_num|int2|NULL|NO|
+|11|month|bpchar|9|NO|
+|12|year|bpchar|4|NO|
+|13|year_quarter|bpchar|2|NO|
+|14|holiday|varchar|25|YES|
+|15|description|varchar|25|YES|
+
+!2 Test to verify that Primary Key is defined on correct column for Table ${tablename}
+
+!|Query|${pksql}|
+|PKColumnName|
+|date_pk|
+
+!2 Test to Check if Index keys are available on correct column on ${tablename}
+
+!|Query|${indexsql}|
+|table_name|index_name|column_name|
+|d_date|d_date_pk|date_pk|

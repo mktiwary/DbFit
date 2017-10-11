@@ -1,49 +1,11 @@
-!*> Setup
-!path lib/*.jar
-!|dbfit.PostgresTest|
-!|ConnectUsingFile|connection.conf|
-*!
+!contents -R2 -g -p -f -h
 
-!|Execute| delete from f_application|
-!|Commit|
+!define tablesql {select * from information_schema.columns where table_name ='${tablename}'}
 
-!2 Test to Find Count of Records in File and Target Table are same
+!define pksql {SELECT a.attname as PKColumnName FROM pg_index i JOIN pg_attribute a ON a.attrelid = i.indrelid AND a.attnum = ANY(i.indkey) 
+WHERE  i.indrelid = '${tablename}'::regclass AND i.indisprimary}
 
-!|Execute| !- Create table temp(BRANCH_CODE varchar(7) NULL,
-PROOF_OF_ADDRESS_SUPPLIED boolean NULL,PROOF_OF_INCOME_SUPPLIED boolean NULL,CREDIT_CARD_BALANCES numeric(7,2) NULL,JOINT_APPLICANT_FLAG boolean NULL,
-NUMBER_OF_OWN_CREDIT_CARDS smallint NULL,NUMBER_OF_OWN_UNSECURED_LOANS smallint NULL,OUTSTANDING_LOAN_BALANCES numeric(7,2) NULL,PAYMENT_PROTECTION boolean NULL,
-STAFF_INDICATOR boolean NULL,VIP_INDICATOR boolean NULL,IDS_APPLICATION_PK integer NOT NULL) -!|
+!define indexsql {select t.relname as table_name, i.relname as index_name, a.attname as column_name from pg_class t, pg_class i, 
+pg_index ix, pg_attribute a where t.oid = ix.indrelid and i.oid = ix.indexrelid and a.attrelid = t.oid and a.attnum = ANY(ix.indkey) 
+and t.relkind = 'r' and t.relname like '${tablename}' order by t.relname, i.relname}
 
-!|Execute| !- COPY temp(BRANCH_CODE, PROOF_OF_ADDRESS_SUPPLIED, PROOF_OF_INCOME_SUPPLIED, CREDIT_CARD_BALANCES, JOINT_APPLICANT_FLAG, NUMBER_OF_OWN_CREDIT_CARDS,
-NUMBER_OF_OWN_UNSECURED_LOANS,OUTSTANDING_LOAN_BALANCES, PAYMENT_PROTECTION, STAFF_INDICATOR, VIP_INDICATOR, IDS_APPLICATION_PK)
-FROM 'C:\File.txt' DELIMITER ',' CSV -!|
-
-|com.objectmentor.fixtures.CommandLineFixture|
-|command |!- C:\kafka_2.11-0.10.2.0\bin\windows\kafka-console-producer.bat --broker-list localhost:9092 --topic test < C:\File.txt -! |
-
-!2 Steps to validate the count in Source File and Target table is same
-
-!|Query|Select (SELECT count(*) as CNT1 FROM f_application) - (SELECT COUNT(*) as CNT2 from temp) as Diffcount|
-|Diffcount?|
-|0|
-#|>>ExpectedValue|
-
-#!|Query|select count(*) - :ExpectedValue as DiffCount from f_application|
-#|Diffcount|
-#|0|
-
-
-!2 Step to Validate Messages sent and the one in Target Table are same
-!|Store Query| select * from temp|Source_Query|
-!|Store Query| select * from f_application|target_query|
-!|Compare stored queries|Source_Query|target_query|
-|branch_code| proof_of_address_supplied| proof_of_income_supplied| credit_card_balances| joint_applicant_flag| number_of_own_credit_cards| number_of_own_unsecured_loans|outstanding_loan_balances| payment_protection| staff_indicator| vip_indicator|
-
-!2 Re-load the same Message file (NO change in record count expected)
-|com.objectmentor.fixtures.CommandLineFixture|
-|command |!- C:\kafka_2.11-0.10.2.0\bin\windows\kafka-console-producer.bat --broker-list localhost:9092 --topic test < C:\File.txt -! |
-!|Query| Select (SELECT count(*) as CNT1 FROM f_application) - (SELECT COUNT(*) as CNT2 from temp) as CNT|
-|CNT?|
-|0|
-
-!|Execute| truncate table temp|

@@ -1,0 +1,45 @@
+!*> Setup
+!path lib/*.jar
+!|dbfit.PostgresTest|
+!|ConnectUsingFile|connection.conf|
+*!
+
+!|Execute| delete from f_application|
+!|Commit|
+
+!2 Test to Find Count of Records in File and Target Table are same
+
+|com.objectmentor.fixtures.CommandLineFixture|
+|command |!- /opt/kafka/kafka_2.11-0.10.2.0/bin/kafka-console-producer.sh --broker-list kafka.kafka-non-prod.genesaas.io:9092 --topic etl_poc < /opt/kafka/kafka_2.11-0.10.2.0/bin/f_application-JSON.json -! |
+
+!2 Steps to validate the count in Source File and Target table is same
+
+!|Query|Select (SELECT count(*) as CNT1 FROM f_application) - (10) as Diffcount|
+|Diffcount?|
+|0|
+
+
+!2 Step to Validate Messages sent and the one in Target Table are same
+
+!|Query|select * from f_application|
+|application_date|application_time|application_status|user_id|branch_code|missing_information_flag|proof_of_address_supplied| proof_of_income_supplied|offer_letter_signed|Fraud Confirmed|cancellation_reason|num_previous_applications|account_number|credit_card_balances|customer_risk_grade|joint_applicant_flag| number_of_own_credit_cards| number_of_own_unsecured_loans|payment_protection|vip_indicator|Application_Number| 
+|20170524|0300|1|rlovewell1|1|N|N|N|N|null|-1|0|3682677011|4892.25|3|N|0|1|N|Y|05-035-9347|
+|20170524|1800|3|lguilloneau6|8|Y|Y|Y|N|null|-1|1|9476886102|2735.08|5|Y|1|2|N|Y|64-209-6015|
+|20170504|2100|2|lrotge2|3|Y|Y|Y|Y|null|-1|1|3677116333|3131.09|4|Y|1|0|N|N|39-021-3018|
+|20170524|2000|4|hleonardi3|1|Y|N|Y|N|null|B|2|5863984457|1609.17|3|Y|2|1|Y|Y|27-719-7270|
+|20170519|2000|3|rlovewell1|6|N|N|Y|Y|null|-1|1|0752682245|3486.18|5|Y|3|0|N|Y|37-353-6209|
+|20170506|1200|3|groddan4|9|Y|Y|Y|N|null|-1|1|3706898179|4457.82|2|N|1|0|N|N|51-411-6508|
+|20170509|0000|2|bscurman0|2|N|Y|Y|N|null|-1|0|3616178274|2376.34|4|N|1|1|N|Y|34-750-2772|
+|20170520|1800|4|lguilloneau6|13|N|N|N|N|null|D|2|1072239604|1044.64|3|N|0|2|Y|N|86-024-9863|
+|20170518|0600|3|cpauli8|1|Y|Y|N|Y|null|-1|2|6020142876|2402.36|2|N|1|2|Y|N|20-543-4731|
+|20170521|0700|2|lguilloneau6|9|N|N|Y|N|null|-1|0|3721024230|951.81|4|N|3|2|N|N|65-474-6387|
+
+
+
+!2 Re-load the same Message file (NO change in record count expected)
+|com.objectmentor.fixtures.CommandLineFixture|
+|command |!- /opt/kafka/kafka_2.11-0.10.2.0/bin/kafka-console-producer.sh --broker-list kafka.kafka-non-prod.genesaas.io:9092 --topic etl_poc < /opt/kafka/kafka_2.11-0.10.2.0/bin/f_application-JSON.json -! |
+
+!|Query| Select (SELECT count(*) as CNT1 FROM f_application) - (10) as CNT|
+|CNT?|
+|0|

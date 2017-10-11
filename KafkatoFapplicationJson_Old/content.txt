@@ -1,0 +1,72 @@
+!*> Setup
+!path lib/*.jar
+!|dbfit.PostgresTest|
+!|ConnectUsingFile|connection.conf|
+*!
+
+!|Execute| delete from f_application|
+!|Commit|
+
+!2 Test to Find Count of Records in File and Target Table are same
+
+!|Execute| create table temp_json(values jsonb) |
+
+!|Execute| COPY temp_json from 'C:\f_application-JSON.json'|
+
+
+|com.objectmentor.fixtures.CommandLineFixture|
+|command |!- C:\kafka_2.11-0.10.2.0\bin\windows\kafka-console-producer.bat --broker-list localhost:9092 --topic test < C:\f_application-JSON.json -! |
+
+!2 Steps to validate the count in Source File and Target table is same
+
+!|Query|Select (SELECT count(*) as CNT1 FROM f_application) - (SELECT COUNT(*) as CNT2 from temp_json) as Diffcount|
+|Diffcount?|
+|0|
+#|>>ExpectedValue|
+
+
+!2 Step to Validate Messages sent and the one in Target Table are same
+!|Store Query| !- select values ->> 'Application Date' as application_date,
+values ->> 'Application Time' as application_Time,
+values ->> 'Application Status' as Application_Status,
+values ->> 'User ID' as User_ID,
+values ->> 'Branch Code' as Branch_Code,
+values ->> 'Missing Information Flag' as Missing_Information_Flag,
+values ->> 'Proof Of Address Supplied' as Proof_Of_Address_Supplied,
+values ->> 'Proof Of Income Supplied' as Proof_Of_Income_Supplied,
+values ->> 'Offer Letter Signed' as Offer_Letter_Signed,
+values ->> 'Cancellation Reason' as Cancellation_Reason,
+values ->> 'Number Previous Applications' as Num_Previous_Applications,
+values ->> 'Account Number' as Account_Number,
+values ->> 'Customer Risk Grade' as Customer_Risk_Grade,
+values ->> 'Joint Applicant Flag' as Joint_Applicant_Flag, 	
+values ->> 'Number of Own Credit Cards' as Number_of_Own_Credit_Cards,
+values ->> 'Number Of Own Unsecured Loans' as Number_of_Own_Unsecured_Loans,
+values ->> 'Payment Protection' as Payment_Protection,
+values ->> 'VIP Indicator' as VIP_Indicator,
+values ->> 'Application Number' as Application_Number
+from temp_json -!|Source_Query|
+
+!|Store Query| !- Select application_date_fk::text as application_date, LPAD(application_time_fk::text,4,'0'), application_status::text, user_id::text, branch_code::text, 
+CASE WHEN Missing_Information_Flag::text ='false' THEN 'N' ELSE 'Y' END as Missing_Information_Flag, 
+CASE WHEN proof_of_address_supplied::text ='false' THEN 'N' ELSE 'Y' END as proof_of_address_supplied, 
+CASE WHEN proof_of_income_supplied::text ='false' THEN 'N' ELSE 'Y' END as proof_of_income_supplied, 
+CASE WHEN offer_letter_signed::text ='false' THEN 'N' ELSE 'Y' END as offer_letter_signed, cancellation_reason::text, num_previous_applications::text, 
+account_number::text, customer_risk_grade::text, CASE WHEN joint_applicant_flag::text ='false' THEN 'N' ELSE 'Y' END as joint_applicant_flag, 
+number_of_own_credit_cards::text, number_of_own_unsecured_loans::text, CASE WHEN payment_protection::text  ='false' THEN 'N' ELSE 'Y' END as payment_protection, 
+CASE WHEN vip_indicator::text ='false' THEN 'N' ELSE 'Y' END as vip_indicator, application_number::text
+FROM F_APPLICATION -!|target_query|
+
+
+!|Compare stored queries|Source_Query|target_query|
+|application_date|application_status|user_id|branch_code|missing_information_flag|proof_of_address_supplied| proof_of_income_supplied|offer_letter_signed|cancellation_reason|num_previous_applications|account_number|customer_risk_grade|joint_applicant_flag| number_of_own_credit_cards| number_of_own_unsecured_loans|payment_protection|vip_indicator|Application_Number| 
+
+!2 Re-load the same Message file (NO change in record count expected)
+|com.objectmentor.fixtures.CommandLineFixture|
+|command |!- C:\kafka_2.11-0.10.2.0\bin\windows\kafka-console-producer.bat --broker-list localhost:9092 --topic test < C:\f_application-JSON.json -! |
+
+!|Query| Select (SELECT count(*) as CNT1 FROM f_application) - (SELECT COUNT(*) as CNT2 from temp_json) as CNT|
+|CNT?|
+|0|
+
+!|Execute| drop table temp_json|
